@@ -6,35 +6,35 @@
 
 ```
 answer_from_docs_service/
-├── main.py              # Точка входа FastAPI
-├── requirements.txt     # Зависимости Python
-├── .env                 # Переменные окружения (создать самостоятельно)
-├── .gitignore
-├── README.md
+├── main.py                    # Точка входа FastAPI, инициализация приложения
+├── requirements.txt           # Зависимости Python
+├── Dockerfile                 # Конфигурация Docker-образа
+├── docker-compose.yml         # Конфигурация Docker Compose
+├── env.example                # Пример файла с переменными окружения
+├── .gitignore                 # Игнорируемые файлы для Git
+├── README.md                  # Документация проекта
 ├── app/
-│   ├── __init__.py
 │   ├── api/
-│   │   ├── __init__.py
 │   │   └── endpoints/
-│   │       ├── __init__.py
-│   │       ├── routes_files.py
-│   │       └── routes_questions.py
+│   │       ├── upload_file.py      # API для загрузки .docx файлов и извлечения текста
+│   │       └── upload_question.py  # API для создания вопросов и получения ответов
 │   ├── core/
-│   │   ├── __init__.py
-│   │   ├── config.py
-│   │   └── utils.py
-│   ├── services/
-│   │   ├── __init__.py
-│   │   ├── llm.py
-│   │   ├── prompt_builder.py
-│   │   ├── summarizer.py
-│   │   ├── status_tracker.py
-│   │   └── queue.py
-│   └── models/
-│       ├── __init__.py
-│       └── dto.py
-└── static/              # Файлы для Swagger (опционально)
-
+│   │   ├── config.py              # Настройки приложения (Pydantic Settings)
+│   │   └── utils.py               # Утилиты: парсинг .docx, работа с JSON-хранилищем, генерация ID
+│   ├── models/
+│   │   └── base.py                # Pydantic модели: QuestionCreate, QuestionOut, Status
+│   └── services/
+│       ├── llm.py                 # Сервис для работы с LLM API (генерация ответов)
+│       └── questions.py           # Обработка вопросов в фоновом режиме
+├── prompts/
+│   └── system.txt                 # Системный промпт для LLM
+├── schemas/
+│   └── answer_schema.json         # JSON-схема для структурированного ответа LLM
+├── storage/
+│   ├── files.json                 # JSON-хранилище загруженных документов
+│   └── questions.json             # JSON-хранилище вопросов и ответов
+└── tests/
+    └── test_core_utils.py         # Тесты для утилит
 ```
 
 ## Установка и запуск
@@ -73,7 +73,7 @@ pytest
 
 1. Скопируйте файл окружения:
    ```bash
-   cp env.example .env
+   copy env.example .env
    ```
 2. Укажите реальные значения переменных (минимум `LLM_API_KEY`).
 3. Соберите и запустите контейнер:
@@ -81,6 +81,28 @@ pytest
    docker compose up --build
    ```
 4. Откройте API на `http://localhost:8000/docs`.
+
+### Проверка работоспособности
+
+После запуска контейнера можно проверить функционал с помощью следующих curl-запросов:
+
+**1. Загрузка документа (.docx файл):**
+```bash
+curl.exe -X POST "http://localhost:8000/storage/files/upload" -F "file=@C:\путь\до\файла.docx"
+```
+Возвращает `file_id` для использования в следующих запросах.
+
+**2. Создание вопроса по документу:**
+```bash
+curl.exe -X POST "http://localhost:8000/storage/questions/" -H "Content-Type: application/json" -d "{\"text\": \"текст вопроса\", \"document_id\": \"id документа\"}"
+```
+Возвращает `question_id`. Обработка вопроса выполняется в фоновом режиме.
+
+**3. Получение ответа на вопрос:**
+```bash
+curl.exe "http://localhost:8000/storage/questions/id вопроса"
+```
+Возвращает статус обработки (`running`, `done`, `error`) и ответ, если обработка завершена.
 
 
 
