@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: answer-from-docs-service
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - ./storage:/app/storage
+      - ./prompts:/app/prompts
+      - ./schemas:/app/schemas
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
