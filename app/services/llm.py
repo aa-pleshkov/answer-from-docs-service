@@ -98,6 +98,14 @@ class LLM:
                 raise RuntimeError("LLM вернул choice без message")
             
             content = chat.choices[0].message.content
+            if content is None or not str(content).strip():
+                raise RuntimeError("LLM вернул пустой ответ")
+
+            raw_preview = str(content).strip()
+            if len(raw_preview) > 500:
+                raw_preview = f"{raw_preview[:500]}... [truncated]"
+            logger.debug(f"Сырой ответ LLM: {raw_preview}")
+
             try:
                 content = json.loads(content)
                 llm_response = content.get("answer_text")
@@ -105,6 +113,11 @@ class LLM:
                     raise RuntimeError("Ответ LLM не содержит ключ answer_text")
                 return llm_response
             except json.JSONDecodeError as e:
+                logger.error(
+                    "Не удалось распарсить ответ LLM как JSON. "
+                    "Сырой ответ: %s",
+                    raw_preview,
+                )
                 raise RuntimeError(f"Не удалось извлечь ответ из JSON: {e}") from e
 
         except ValueError as e:
